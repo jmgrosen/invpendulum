@@ -36,7 +36,7 @@ void *body(void *param) {
     exit(1);
   }
 
-  if (eqep_init(EQEP1, 1000000, &encoder1) < 0) {
+  if (eqep_init(EQEP0, 1000000, &encoder1) < 0) {
     perror("eqep_init failed");
     exit(1);
   }

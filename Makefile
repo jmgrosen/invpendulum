@@ -1,6 +1,6 @@
 LDFLAGS = -pthread
 
-OFILES = src/eqep.o src/main.o
+OFILES = src/eqep.o src/main.o src/common.o
 
 .PHONY: all clean
 

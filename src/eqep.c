@@ -5,6 +5,9 @@
 #include <sys/mman.h>
 #include <inttypes.h>
 
+#include "common.h"
+#include "eqep.h"
+
 #define PAGE_SIZE 4096
 #define EQEP_POS_OFFSET 0x0000
 
@@ -41,12 +44,36 @@ int eqep_teardown(void) {
   return 0;
 }
 
+const char *eqep_addr_to_name(uint32_t addr) {
+  switch (addr) {
+  case EQEP0:
+    return "bone_eqep0";
+  case EQEP1:
+    return "bone_eqep1";
+  case EQEP2:
+    return "bone_eqep2";
+  default:
+    return NULL;
+  }
+}
+
 int eqep_init(uint32_t addr, uint32_t period, volatile int32_t **mapping) {
   int ocp_num;
   char path[128];
   int enabled_fd;
   int mode_fd;
   int period_fd;
+  const char *eqep_name;
+
+  if ((eqep_name = eqep_addr_to_name(addr)) == NULL) {
+    return -1;
+  }
+
+  if (load_device_tree(eqep_name) < 0) {
+    return -1;
+  }
+
+  printf("loaded device tree\n");
 
   if ((ocp_num = load_ocp_num()) < 0) {
     return -1;
