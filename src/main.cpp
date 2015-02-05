@@ -7,12 +7,14 @@
 #include <string.h>
 
 #include "eqep.h"
+#include "pwm.hpp"
+#include "servo.hpp"
 
 #define MY_PRIORITY (80)
 #define MAX_SAFE_STACK (8*1024)
 #define NSEC_PER_SEC (1000000000)
 
-#define INTERVAL (100000000) /* 100ms, i.e. 100000000ns */
+#define INTERVAL (1000000000) /* 1000ms, i.e. 1000000000ns */
 
 void stack_prefault(void) {
   unsigned char dummy[MAX_SAFE_STACK];
@@ -24,6 +26,7 @@ void *body(void *param) {
   struct timespec actual_time;
   struct sched_param sparam;
   volatile int32_t *encoder1;
+  Servo motor(P9_14, 1000000, 2000000);
 
   sparam.sched_priority = MY_PRIORITY;
   if (sched_setscheduler(0, SCHED_FIFO, &sparam) == -1) {
@@ -36,7 +39,7 @@ void *body(void *param) {
     exit(1);
   }
 
-  if (eqep_init(EQEP0, 1000000, &encoder1) < 0) {
+  if (eqep_init(EQEP1, 1000000, &encoder1) < 0) {
     perror("eqep_init failed");
     exit(1);
   }
@@ -45,16 +48,29 @@ void *body(void *param) {
 
   stack_prefault();
 
+  motor.begin();
+
   clock_gettime(CLOCK_MONOTONIC, &t);
   /* start after a second */
   t.tv_sec++;
 
+  float val = -0.2;
+
   while (1) {
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
+
+    /* MAIN LOOP HERE */
 
     int32_t encoder_val = *encoder1;
     clock_gettime(CLOCK_MONOTONIC, &actual_time);
     printf("enc = %d, sec = %lu, nsec = %u\n", encoder_val, actual_time.tv_sec, actual_time.tv_nsec);
+
+    motor.write(val);
+    val += 0.1;
+
+    if (val > 0.21) {
+      val = -0.2;
+    }
 
     t.tv_nsec += INTERVAL;
 
