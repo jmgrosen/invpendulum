@@ -9,9 +9,13 @@ bool Servo::begin() {
 }
 
 bool Servo::write(float val) {
+  if (val > 1.0) {
+    val = 1.0;
+  } else if (val < -1.0) {
+    val = -1.0;
+  }
   float normalized = (val + 1.0) / 2.0;
   float newrange = static_cast<float>(high_ - low_);
   std::uint64_t ival = static_cast<std::uint64_t>(normalized * newrange) + low_;
-  std::cout << ival << std::endl;
   return pwm_.write_duty(ival);
 }
