@@ -96,6 +96,18 @@ std::string pin_to_key(Pin pin) {
   case P9_44: return "P9_44";
   case P9_45: return "P9_45";
   case P9_46: return "P9_46";
+  case SERVO_P9_14: return "s_P9_14";
+  case SERVO_P9_16: return "s_P9_16";
+  default: return "";
+  }
+}
+
+std::string pin_to_pwm(Pin pin) {
+  switch (pin) {
+  case P8_13: return "pwm_test_P8_13";
+  case P9_14: return "pwm_test_P9_14";
+  case SERVO_P9_14: return "pwm_test_P9_14";
+  case SERVO_P9_16: return "pwm_test_P9_16";
   default: return "";
   }
 }
@@ -194,6 +206,8 @@ int pin_to_gpio(Pin pin) {
   case P9_44: return 0;
   case P9_45: return 0;
   case P9_46: return 0;
+  case SERVO_P9_14: return 50;
+  case SERVO_P9_16: return 51;
   default: return -1;
   }
 }

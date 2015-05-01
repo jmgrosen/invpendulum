@@ -15,7 +15,7 @@ public:
   bool write(float val);
   bool write_period(std::uint64_t period);
   bool write_duty(std::uint64_t duty);
-  bool begin(float duty_cycle=0.0, float frequency=2000.0, int polarity=1);
+  bool begin(float duty_cycle=0.0, float frequency=2000.0, int polarity=0);
 
 private:
   Pin pin_;

@@ -50,8 +50,6 @@ int load_device_tree(const char *name) {
     return -2;
   }
 
-  printf(slots_path);
-
   if ((slots_fd = open(slots_path, O_WRONLY)) < 0) {
     return -3;
   }
@@ -63,13 +61,9 @@ int load_device_tree(const char *name) {
     return -3;
   }
 
-  printf("wrote slots");
-
   if (close(slots_fd) < 0) {
     return -3;
   }
-
-  printf("loaded device tree\n");
 
   return 0;
 }

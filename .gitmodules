@@ -1,0 +1,3 @@
+[submodule "src/readerwriterqueue"]
+	path = src/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue

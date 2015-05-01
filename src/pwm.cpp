@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "pwm.hpp"
 #include "common.h"
@@ -7,28 +8,30 @@
 static bool pwm_initted = false;
 static std::string ocp_dir = "/sys/devices/ocp.3";
 
+static int count = 12;
+
 bool PWM::begin(float duty_cycle, float freq, int polarity) {
   if (!pwm_initted) {
-    std::cout << "going to load device tree" << std::endl;
     if (!load_device_tree("am33xx_pwm")) {
-      std::cout << "successfully loaded device tree" << std::endl;
-      // BuildPath("/sys/devices", "ocp", ocp_dir);
-      std::cout << "ocp_dir is " << ocp_dir << std::endl;
+      std::cout << "successfully loaded device tree for am33xx_pwm" << std::endl;
       pwm_initted = true;
     } else {
-      std::cout << "could not load device tree" << std::endl;
+      std::cout << "could not load device tree for am33xx_pwm" << std::endl;
       return false;
     }
   }
 
   auto key = pin_to_key(pin_);
+  std::string pwm_test_path;
 
   if (!load_device_tree(("bone_pwm_" + key).c_str())) {
-    printf("couldn't load second pwm thing\n");
+    std::cout << "loading device tree for bone_pwm_" + key + " failed" << std::endl;
     return false;
   }
+  pwm_test_path = "/sys/devices/ocp.3/" + pin_to_pwm(pin_) + "." + std::to_string(count);
+  std::cout << "pwm_test_path is " << pwm_test_path << std::endl;
 
-  std::string pwm_test_path = "/sys/devices/ocp.3/pwm_test_" + key + ".12";
+  count++;
   // if (!BuildPath(ocp_dir, "pwm_test_" + key, pwm_test_path)) {
   //   return false;
   // }
@@ -51,15 +54,15 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
     return false;
   }
 
-  if (!write_freq(freq)) {
-    return false;
-  }
-  if (!write_polarity(polarity)) {
-    return false;
-  }
-  if (!write(duty_cycle)) {
-    return false;
-  }
+  // if (!write_freq(freq)) {
+  //   return false;
+  // }
+  // if (!write_polarity(polarity)) {
+  //   return false;
+  // }
+  // if (!write(duty_cycle)) {
+  //   return false;
+  // }
 
   return true;
 }

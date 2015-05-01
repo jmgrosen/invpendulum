@@ -95,10 +95,13 @@ enum Pin {
   P9_43,
   P9_44,
   P9_45,
-  P9_46
+  P9_46,
+  SERVO_P9_14,
+  SERVO_P9_16,
 };
 
 std::string pin_to_key(Pin pin);
+std::string pin_to_pwm(Pin pin);
 int pin_to_gpio(Pin pin);
 
 #endif

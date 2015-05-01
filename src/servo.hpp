@@ -6,12 +6,15 @@
 
 class Servo {
 public:
-  Servo(Pin pin, std::uint64_t low, std::uint64_t high) : pwm_(pin), low_(low), high_(high) { }
+  Servo(Pin negative, Pin positive, std::uint64_t low, std::uint64_t high)
+    : negative_(negative), positive_(positive), low_(low), high_(high) { }
   bool begin();
   bool write(float val);
+  bool write_raw(std::uint64_t val);
 
 private:
-  PWM pwm_;
+  PWM negative_;
+  PWM positive_;
   std::uint64_t low_;
   std::uint64_t high_;
 };
