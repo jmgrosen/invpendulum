@@ -57,9 +57,9 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
   // if (!write_freq(freq)) {
   //   return false;
   // }
-  // if (!write_polarity(polarity)) {
-  //   return false;
-  // }
+  if (!write_polarity(polarity)) {
+    return false;
+  }
   // if (!write(duty_cycle)) {
   //   return false;
   // }

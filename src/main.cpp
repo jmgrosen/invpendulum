@@ -60,10 +60,10 @@ private:
   float last_last_vel_;
   float last_vel_;
 
-  const float b1_ = 1.333;
-  const float b2_ = -0.444;
-  const float b3_ = 27.78;
-  const float b4_ = -27.78;
+  const float b1_ = 1.636;
+  const float b2_ = -0.6694;
+  const float b3_ = 8.264;
+  const float b4_ = -8.264;
 };
 
 moodycamel::ReaderWriterQueue<LogEntry, 1024> log_queue(1024);
@@ -118,18 +118,19 @@ void *body(void *param) {
   // Servo motor(SERVO_P9_14, SERVO_P9_16, 1400000, 1600000);
   Motor motor(P9_15, P9_14, 0.6);
   // Output out(P9_15);
-  enum controller_state state;
+  enum controller_state state = MAINTAIN;
 
   const float Ts = ((float) INTERVAL) / 1000000000.0;
   float Kp_cart = -4.3;
-  float Kd_cart = -2.7; // .37
+  float Kd_cart = -0.0; // .37
   float Kp_pend = 0.0;
   float Kd_pend = 0.0;
   const float f = 1.0;
-
   
   VelEstimator cart_estimator(0.0);
   VelEstimator pend_estimator(M_PI);
+  float last_filtered_u_cart = 0.0;
+  float last_u_cart = 0.0;
   float last_x_cart = 0.0;
   float last_error_x = 0.0;
   float last_control = 0.0;
@@ -175,6 +176,8 @@ void *body(void *param) {
 
   printf("Kp_cart = %f\n", Kp_cart);
 
+  float desired = 0.0;
+
   //  for (auto entry : playback) {
   for (int i = 0; i < 100000; i++) {
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
@@ -190,6 +193,7 @@ void *body(void *param) {
 
     float x_cart = ((float) position_diff) * (2.0f * M_PI / 4096.0) * (30.0 / 34.0) * (0.0541 / 2.0);
     float theta_pend = ((float) (angle_diff + 2048)) * (2.0f * M_PI / 4096.0);
+    // std::cout << theta_pend << std::endl;
     float cart_velocity = (x_cart - last_x_cart) / Ts;
     float pend_velocity = (theta_pend - last_theta_pend) / Ts;
 
@@ -197,7 +201,6 @@ void *body(void *param) {
     float time = (((float) actual_time.tv_sec) + ((float) actual_time.tv_nsec) / 1000000000) - time_initial;
     // float desired = 2 * sin(M_PI * time);
     // float desired = func(time);
-    float desired = 0.0;
 
     switch (state) {
     case SWING_UP_LEFT:
@@ -219,6 +222,7 @@ void *body(void *param) {
       // }
       break;
     case MAINTAIN:
+      // Kp_cart = 0.0;
       Kp_pend = 7.3;
       Kd_pend = 0.7;
       break;
@@ -227,13 +231,13 @@ void *body(void *param) {
     }
 
     float error_x = desired - x_cart;
-    float derror_x = -cart_estimator.step(x_cart);
+    float derror_x = cart_estimator.step(x_cart);
     float error_th = 0 - theta_pend;
     float error_th_wrap = wrap_radians(error_th);
     float derror_th = -pend_estimator.step(theta_pend);
 
-    std::cout << "error_x = " << error_x << ", derror_x = " << derror_x << std::endl;
-    std::cout << "error_th_wrap = " << error_th_wrap << ", derror_th = " << derror_th << std::endl;
+    // std::cout << "error_x = " << error_x << ", derror_x = " << derror_x << std::endl;
+    // std::cout << "error_th_wrap = " << error_th_wrap << ", derror_th = " << derror_th << std::endl;
 
     if (state != MAINTAIN && (fabs(error_th_wrap) < 0.4f && fabs(derror_th) > 0.5)) {
       std::cout << "inverted the pendulum at " << actual_time.tv_sec << "s, " << actual_time.tv_nsec << "ns" << std::endl;
@@ -248,7 +252,7 @@ void *body(void *param) {
     }
 
     // float to_write = Kp_cart * error + (Ki * Ts - Kp_cart) * last_error + last_control;
-    float u_cart = Kp_cart * error_x + Kd_cart * (f * derror_x + (1 - f) * (0 - last_cart_vel))
+    float u_cart = Kp_cart * error_x + Kd_cart * derror_x
       + Kp_pend * error_th_wrap + Kd_pend * derror_th;
     // float u_cart = Kp_cart * error_x + Kd_cart * derror_th;
     if (u_cart > 25.0) {
@@ -257,15 +261,23 @@ void *body(void *param) {
       u_cart = -25.0;
     }
 
-    motor.write(u_cart);
+    const float a = 0.95;
+
+    const float filtered_u_cart = a * last_filtered_u_cart + ((1 - a) / 2) * (u_cart + last_u_cart);
+
+    if (time > 8.0) {
+      motor.write(u_cart);
+    }
     // if (x_cart <= 0.90) {
     //   motor.write_raw(1450000);
     // } else {
     //   motor.write_raw(1500000);
     // }
 
-    log_queue.try_enqueue(LogEntry(actual_time, u_cart, x_cart, derror_x, desired, theta_pend, derror_th));
+    log_queue.try_enqueue(LogEntry(actual_time, filtered_u_cart, x_cart, derror_x, desired, theta_pend, derror_th));
 
+    last_filtered_u_cart = filtered_u_cart;
+    last_u_cart = u_cart;
     last_x_cart = x_cart;
     last_error_x = error_x;
     last_control = u_cart;
@@ -292,7 +304,7 @@ void *logthread(void *data) {
     LogEntry entry;
 
     while (log_queue.try_dequeue(entry)) {
-      fprintf(logf, "%ld,%lu,%f,%f,%f,%f\n", entry.time_.tv_sec, entry.time_.tv_nsec,
+      fprintf(logf, "%ld,%lu,%f,%f,%f,%f,%f,%f\n", entry.time_.tv_sec, entry.time_.tv_nsec,
               entry.u_cart_, entry.x_cart_, entry.dx_cart_, entry.desired_, entry.theta_pend_, entry.dtheta_pend_);
     }
 
