@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "pwm.hpp"
 #include "common.h"
@@ -8,7 +9,7 @@
 static bool pwm_initted = false;
 static std::string ocp_dir = "/sys/devices/ocp.3";
 
-static int count = 12;
+static int count = 13;
 
 bool PWM::begin(float duty_cycle, float freq, int polarity) {
   if (!pwm_initted) {
@@ -24,10 +25,10 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
   auto key = pin_to_key(pin_);
   std::string pwm_test_path;
 
-  if (!load_device_tree(("bone_pwm_" + key).c_str())) {
-    std::cout << "loading device tree for bone_pwm_" + key + " failed" << std::endl;
-    return false;
-  }
+  //load_device_tree(("bone_pwm_" + key).c_str());
+  // THIS IS A HACK
+  load_device_tree("my_pwm_P9_14");
+
   pwm_test_path = "/sys/devices/ocp.3/" + pin_to_pwm(pin_) + "." + std::to_string(count);
   std::cout << "pwm_test_path is " << pwm_test_path << std::endl;
 
@@ -36,8 +37,11 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
   //   return false;
   // }
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+
   period_f_.open(pwm_test_path + "/period");
   if (!period_f_.good()) {
+    std::cout << "couldn't open period file" << std::endl;
     return false;
   }
 
@@ -49,6 +53,7 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
 
   polarity_f_.open(pwm_test_path + "/polarity");
   if (!polarity_f_.good()) {
+    std::cout << "couldn't open polarity file" << std::endl;
     period_f_.close();
     duty_f_.close();
     return false;
@@ -58,11 +63,14 @@ bool PWM::begin(float duty_cycle, float freq, int polarity) {
   //   return false;
   // }
   if (!write_polarity(polarity)) {
+    std::cout << "couldn't write polarity" << std::endl;
     return false;
   }
   // if (!write(duty_cycle)) {
   //   return false;
   // }
+
+  std::cout << "finished begin of pwm" << std::endl;
 
   return true;
 }

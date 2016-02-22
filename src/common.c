@@ -58,10 +58,12 @@ int load_device_tree(const char *name) {
 
   name_len = strlen(name); // hopefully name is nul-terminated...
   if (write(slots_fd, name, name_len) < 0) {
+    printf("writing slots name failed\n");
     return -3;
   }
 
   if (close(slots_fd) < 0) {
+    printf("closing slots file failed\n");
     return -3;
   }
 
